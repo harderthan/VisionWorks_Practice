@@ -114,7 +114,7 @@ endif
 LIBRARIES += $(NVXIO_LIBS)
 LIBRARIES += $(shell pkg-config --libs freetype2) $(shell pkg-config --libs gl glfw3) $(shell pkg-config --libs xrandr xi xxf86vm x11)
 LIBRARIES +=  $(shell pkg-config --libs gstreamer-base-1.0 gstreamer-pbutils-1.0 gstreamer-app-1.0)
-LIBRARIES +=  
+LIBRARIES +=
 LIBRARIES += $(VISION_WORKS_LIBS)
 LIBRARIES += $(CUDA_LIBS)
 LIBRARIES += $(OPENCV_LIBS)
@@ -163,7 +163,7 @@ $(OUTPUT_DIR):
 
 $(OUTPUT_DIR)/nvx_sample_opencv_npp_interop: $(OBJ_FILES_CPP) $(OBJ_FILES_C) $(NVXIO_LIBS) | $(OUTPUT_DIR)
 	$(CXX) $(LDFLAGS) $(CCFLAGS) $(CXXFLAGS) -o $@ $^ $(LIBRARIES)
-
+	
 run: build
 	./$(OUTPUT_DIR)/nvx_sample_opencv_npp_interop
 

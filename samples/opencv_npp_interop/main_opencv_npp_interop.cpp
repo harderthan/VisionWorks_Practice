@@ -132,45 +132,43 @@ int main(int argc, char* argv[])
     //
     // Load input images
     //
-
+    /*
     if (fileName1 == fileName2)
     {
         std::cerr << "Please, use different files for img1 and img2" << std::endl;
         return nvxio::Application::APP_EXIT_CODE_INVALID_VALUE;
     }
-
+    */
     cv::Mat cv_src1 = cv::imread(fileName1, cv::IMREAD_GRAYSCALE);
     cv::Mat cv_src2 = cv::imread(fileName2, cv::IMREAD_GRAYSCALE);
-
+    /*
     if (cv_src1.empty() || cv_src2.empty())
     {
         std::cerr << "Can't load input images" << std::endl;
         return nvxio::Application::APP_EXIT_CODE_NO_RESOURCE;
     }
 
+
     if (cv_src1.size() != cv_src2.size())
     {
         std::cerr << "Input images must have the same size." << std::endl;
         return nvxio::Application::APP_EXIT_CODE_INVALID_DIMENSIONS;
     }
-
+    */
     //
     // Create OpenVX context
     //
 
     nvxio::ContextGuard context;
     vxRegisterLogCallback(context, &myLogCallback, vx_false_e);
-
     std::unique_ptr<nvxio::Render> renderer(nvxio::createDefaultRender(context, "OpenCV NPP Interop Sample",
-                                                                       3 * cv_src1.cols, cv_src1.rows));
-    std::unique_ptr<nvxio::Render> renderer02(nvxio::createDefaultRender(context, "Single Image Test",
-                                                                       cv_src1.cols, cv_src1.rows));
-
+                                                                       2 * cv_src1.cols, cv_src1.rows));
+    /*
     if (!renderer) {
         std::cerr << "Can't create a renderer." << std::endl;
         return nvxio::Application::APP_EXIT_CODE_NO_RENDER;
     }
-
+    */
     EventData eventData;
     renderer->setOnKeyboardEventCallback(eventCallback, &eventData);
 
@@ -216,31 +214,34 @@ int main(int argc, char* argv[])
     vx_uint32 width = 0, height = 0;
     NVXIO_SAFE_CALL( vxQueryImage(src1, VX_IMAGE_ATTRIBUTE_WIDTH, &width, sizeof(width)) );
     NVXIO_SAFE_CALL( vxQueryImage(src1, VX_IMAGE_ATTRIBUTE_HEIGHT, &height, sizeof(height)) );
-
+    /*
     vx_image dst = vxCreateImage(context, width, height, VX_DF_IMAGE_U8);
     NVXIO_CHECK_REFERENCE(dst);
-
-    vx_image demoImg = vxCreateImage(context, 3 * width, height, VX_DF_IMAGE_U8);
+    */
+    vx_image demoImg = vxCreateImage(context, 2 * width, height, VX_DF_IMAGE_U8);
     NVXIO_CHECK_REFERENCE(demoImg);
 
     vx_rectangle_t leftRect;
-    NVXIO_SAFE_CALL( vxGetValidRegionImage(dst, &leftRect) );
-
+    NVXIO_SAFE_CALL( vxGetValidRegionImage(src1, &leftRect) );  // add
+    //NVXIO_SAFE_CALL( vxGetValidRegionImage(dst, &leftRect) );
+    /*
     vx_rectangle_t middleRect;
     middleRect.start_x = leftRect.end_x;
     middleRect.start_y = leftRect.start_y;
     middleRect.end_x = 2 * leftRect.end_x;
     middleRect.end_y = leftRect.end_y;
+    */
     vx_rectangle_t rightRect;
-    rightRect.start_x = middleRect.end_x;
+    rightRect.start_x = leftRect.end_x;  // add
+    //rightRect.start_x = middleRect.end_x;
     rightRect.start_y = leftRect.start_y;
-    rightRect.end_x = 3 * leftRect.end_x;
+    rightRect.end_x = 2 * leftRect.end_x;
     rightRect.end_y = leftRect.end_y;
 
     vx_image leftRoi = vxCreateImageFromROI(demoImg, &leftRect);
     NVXIO_CHECK_REFERENCE(leftRoi);
-    vx_image middleRoi = vxCreateImageFromROI(demoImg, &middleRect);
-    NVXIO_CHECK_REFERENCE(middleRoi);
+    //vx_image middleRoi = vxCreateImageFromROI(demoImg, &middleRect);
+    //NVXIO_CHECK_REFERENCE(middleRoi);
     vx_image rightRoi = vxCreateImageFromROI(demoImg, &rightRect);
     NVXIO_CHECK_REFERENCE(rightRoi);
 
@@ -248,19 +249,28 @@ int main(int argc, char* argv[])
     // Notify the framework that we are going to access imported images
     //
 
-    void *src1_ptr = NULL;
-    NVXIO_SAFE_CALL( vxAccessImagePatch(src1, &rect, 0, &src1_addr, &src1_ptr, VX_READ_ONLY) );
 
+    void *src1_ptr = NULL;
+    NVXIO_SAFE_CALL( vxAccessImagePatch(src1, &rect, 0, &src1_addr, &src1_ptr, VX_READ_ONLY ) );
+    
+
+    cv::Mat temp(width, height, 0);
+    temp.data = (uchar *)src1_ptr;
+    imshow("test", temp);
+    cv::waitKey(0);
+
+
+    /*
     void *src2_ptr = NULL;
     NVXIO_SAFE_CALL( vxAccessImagePatch(src2, &rect, 0, &src2_addr, &src2_ptr, VX_READ_ONLY) );
 
-    NVXIO_SAFE_CALL( vxCommitImagePatch(src1, NULL, 0, &src1_addr, src1_ptr) );
     NVXIO_SAFE_CALL( vxCommitImagePatch(src2, NULL, 0, &src2_addr, src2_ptr) );
+    */
 
     //
     // Create scalars
     //
-
+    /*
     vx_uint8 alpha1 = 255;
     vx_uint8 alpha2 = 255 - alpha1;
     vx_enum alphaOp = static_cast<vx_enum>(NPPI_OP_ALPHA_PLUS);
@@ -321,19 +331,21 @@ int main(int argc, char* argv[])
         std::cerr << "Graph verification failed (see LOG)" << std::endl;
         return nvxio::Application::APP_EXIT_CODE_INVALID_GRAPH;
     }
-
+    */
     //
     // Processing loop
     //
-
+    /*
     bool alpha1Increase = false;
 
     nvx::Timer totalTimer;
     totalTimer.tic();
     const vx_uint8 alpha1Step = 5;
     double proc_ms = 0;
+    */
     while(!eventData.shouldStop)
     {
+        /*
         if (!eventData.pause)
         {
             //
@@ -406,22 +418,20 @@ int main(int argc, char* argv[])
 
             NVXIO_SAFE_CALL( vxQueryNode(alphaComp_node, VX_NODE_ATTRIBUTE_PERFORMANCE, &perf, sizeof(perf)) );
             std::cout << "\t Alpha Comp Time : " << perf.tmp / 1000000.0 << " ms" << std::endl;
-
+            */
             NVXIO_SAFE_CALL( nvxuCopyImage(context, src1, leftRoi) );
-            NVXIO_SAFE_CALL( nvxuCopyImage(context, dst, middleRoi) );
+            //NVXIO_SAFE_CALL( nvxuCopyImage(context, dst, middleRoi) );
             NVXIO_SAFE_CALL( nvxuCopyImage(context, src2, rightRoi) );
-        }
+        //}
 
         //
         // Show results
         //
 
         renderer->putImage(demoImg);
-        renderer02->putImage(src1);
 
 
         renderer->flush();
-        renderer02->flush();
     }
 
     //
@@ -429,10 +439,11 @@ int main(int argc, char* argv[])
     //
 
     renderer->close();
-    renderer02->close();
+
+
     vxReleaseImage(&demoImg);
     vxReleaseImage(&leftRoi);
-    vxReleaseImage(&middleRoi);
+    //vxReleaseImage(&middleRoi);
     vxReleaseImage(&rightRoi);
 
     return nvxio::Application::APP_EXIT_CODE_SUCCESS;

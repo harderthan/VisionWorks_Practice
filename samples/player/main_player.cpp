@@ -72,8 +72,8 @@ int main(int argc, char** argv)
     // Parse command line arguments
     //
 
-    std::string input = app.findSampleFilePath("cars.mp4");
-
+    //std::string input = app.findSampleFilePath("cars.mp4");
+    std::string input = "/home/intern01/Desktop/Work/VisionWorks-1.0-Samples/data/cars.mp4";
     app.setDescription("This sample plays a video from video-file or camera");
     app.addOption('s', "source", "Input URI", nvxio::OptionHandler::string(&input));
     app.init(argc, argv);
@@ -95,11 +95,8 @@ int main(int argc, char** argv)
     //
 
     std::unique_ptr<nvxio::FrameSource> source(nvxio::createDefaultFrameSource(context, input));
-    if (!source || !source->open())
-    {
-        std::cout << "Error: cannot open source!" << std::endl;
-        return nvxio::Application::APP_EXIT_CODE_NO_RESOURCE;
-    }
+    source->open();  // 왜인지 모르겠으나 FrameSource를 생성한 후 한번은 open() 해줘야 됨.
+
     nvxio::FrameSource::Parameters config = source->getConfiguration();
 
     //
@@ -108,74 +105,34 @@ int main(int argc, char** argv)
 
     std::unique_ptr<nvxio::Render> render(nvxio::createDefaultRender(
                 context, "Player Sample", config.frameWidth, config.frameHeight));
-    if (!render)
-    {
-        std::cout << "Error: Cannot open default render!" << std::endl;
-        return nvxio::Application::APP_EXIT_CODE_NO_RENDER;
-    }
 
-    EventData eventData;
-    render->setOnKeyboardEventCallback(keyboardEventCallback, &eventData);
 
     vx_image frame = vxCreateImage(context, config.frameWidth,
                                    config.frameHeight, config.format);
-    NVXIO_CHECK_REFERENCE(frame);
+    //NVXIO_CHECK_REFERENCE(frame);
 
-    nvxio::Render::TextBoxStyle style = {{255,255,255,255}, {0,0,0,255}, {10,10}};
-    nvx::Timer totalTimer;
-    totalTimer.tic();
+
+
+    EventData eventData;
     while(eventData.alive)
     {
         nvxio::FrameSource::FrameStatus status = nvxio::FrameSource::OK;
-        if (!eventData.pause)
+        if (!eventData.pause)   // 영상이 종료 된 경우 fetch를 통해 다시 받는다.
         {
             status = source->fetch(frame);
         }
 
         switch(status)
         {
-        case nvxio::FrameSource::OK:
+        case nvxio::FrameSource::OK:    // 일반적인 경우, 이미지를 렌더로 입력
         {
-            double total_ms = totalTimer.toc();
-            //
-            // Add a delay to limit frame rate
-            //
-            total_ms = totalTimer.toc();
-
-            std::cout << "NO PROCESSING" << std::endl;
-            std::cout << "Graph Time : " << 0 << " ms" << std::endl;
-            std::cout << "Display Time : " << total_ms << " ms" << std::endl << std::endl;
-
-            app.sleepToLimitFPS(total_ms);
-
-            total_ms = totalTimer.toc();
-            totalTimer.tic();
-
-            std::ostringstream txt;
-            txt << std::fixed << std::setprecision(1);
-
-            txt << "Source size: " << config.frameWidth << 'x' << config.frameHeight << std::endl;
-            txt << "Algorithm: " << "No Processing" << std::endl;
-            txt << "Display: " << total_ms  << " ms / " << 1000.0 / total_ms << " FPS" << std::endl;
-
-            txt << std::setprecision(6);
-            txt.unsetf(std::ios_base::floatfield);
-
-            txt << "LIMITED TO " << app.getFPSLimit() << " FPS FOR DISPLAY" << std::endl;
-            txt << "Space - pause/resume" << std::endl;
-            txt << "Esc - close the demo";
-
             render->putImage(frame);
-            render->putText(txt.str(), style);
 
             if (!render->flush())
                 eventData.alive = false;
         } break;
-        case nvxio::FrameSource::TIMEOUT:
-        {
-            // Do nothing
-        } break;
-        case nvxio::FrameSource::CLOSED:
+
+        case nvxio::FrameSource::CLOSED:    // 이미지가 종료된 경우, eventData flag 값을 false.
         {
             // Reopen
             if (!source->open())
